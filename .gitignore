@@ -88,5 +88,5 @@ SECRETS.py
 .pdb
 .pt
 .csv
-*/results/*
-*/wandb/
+**/results/
+**/wandb/
