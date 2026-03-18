@@ -11,6 +11,9 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-user=sabarik@colostate.edu
 
+# Activate pixi environment
+eval "$(pixi shell-hook --manifest-path $SLURM_SUBMIT_DIR/pixi.toml)"
+
 # CLI args with defaults
 BATCH_SIZE=${1:-20}
 AMP=${2:-false}
