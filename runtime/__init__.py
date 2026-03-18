@@ -1,1 +1,1 @@
-__all__ = ["ripsnet", "topoformer"]
+__all__ = ["topocoder", "topoformer"]
