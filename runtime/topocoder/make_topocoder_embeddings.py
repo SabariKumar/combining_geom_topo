@@ -15,7 +15,7 @@ from torch.utils.data import random_split
 import sys
 sys.path.append("/home/sabari/ProteinSol/topoformer")
 
-from data_loading.topocoder.rips_loader import make_dataloaders, ProteinInferenceDataset
+from data_loading.topocoder.topocoder_loader import make_dataloaders, TopoCoderInferenceDataset
 from model.topocoder.topocoder import TopoCoder
 print(f"Using torch version: {torch.__version__}")
 RANDOM_SEED = 42
@@ -28,7 +28,7 @@ generator = torch.Generator().manual_seed(RANDOM_SEED)
 @click.option("--betti_no", required=True, multiple=True)
 @click.option("--trained_model_dir", default = '/home/sabari/ProteinSol/topoformer/results/')
 def make_topo_emb(pdb_dir, emb_save_dir, betti_no, trained_model_dir):
-    data_set = ProteinInferenceDataset(coords_dir = pdb_dir)
+    data_set = TopoCoderInferenceDataset(coords_dir = pdb_dir)
     data_loader = data.DataLoader(data_set,batch_size=1,
                 shuffle=False,
                 pin_memory=True,
