@@ -111,22 +111,21 @@ class ProteinDataset(Dataset):
 
     num_bonds = 8
     node_feature_size = 25
-    def __init__(self, pdb_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/train/pdbs',
-                sol_df = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/train/csvs/training_set.csv',
-                mode: str = 'train', use_barcodes = False, 
-                cache_processed = True, use_preprocessed = False,
-                processed_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/preprocessed',
-                barcode_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/rips_embeddings',
-                esm_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/esm_embeddings'):        
+    def __init__(self, pdb_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                sol_df = '/home/sabari/ProteinSol/combining_geom_topo/data/csvs/training_set.csv',
+                mode: str = 'train', use_barcodes = False,
+                processed_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                barcode_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                esm_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                force_rebuild = False):
         self.pdb_dir = pdb_dir
         self.sol_df = sol_df
         self.mode = mode
         self.use_barcodes = use_barcodes
-        self.cache_processed = cache_processed
-        self.use_preprocessed = use_preprocessed
         self.processed_dir = processed_dir
         self.barcode_dir = barcode_dir
         self.esm_dir = esm_dir
+        self.force_rebuild = force_rebuild
         self.sol_data = self._load_sol_labels()
         self.data_list = self._get_data_list()
 
@@ -139,10 +138,7 @@ class ProteinDataset(Dataset):
         return sol_data
     
     def _get_data_list(self):
-        if self.use_preprocessed:
-            return sorted(glob.glob(os.path.join(self.processed_dir, '*_input.pt')))
-        else:
-            return sorted(glob.glob(os.path.join(self.pdb_dir, '*.pdb')))
+        return sorted(glob.glob(os.path.join(self.pdb_dir, '*.pdb')))
         
     def _build_data(self, input_pdb):
         pdb_path, _ = clean_pdb(input_pdb)
@@ -174,37 +170,39 @@ class ProteinDataset(Dataset):
         dat.edata['rel_pos'] = torch.tensor(self._get_edge_lengths(g))
         dat = dgl.add_self_loop(dat)
         dat = dgl.to_float(dat)
-        print(f'base: {base}')
-        print(f'sol_val: {self.sol_data.loc[int(base)]["solubility"]}')
         sol = int(self.sol_data.loc[int(base), "solubility"])
         target = torch.tensor(sol).type(torch.FloatTensor)
 
-        if self.cache_processed:
-            torch.save(dat, os.path.join(self.processed_dir, base + '_input.pt'))
-            torch.save(target, os.path.join(self.processed_dir, base + '_target.pt'))
+        os.makedirs(self.processed_dir, exist_ok=True)
+        torch.save(dat, os.path.join(self.processed_dir, base + '_input.pt'))
+        torch.save(target, os.path.join(self.processed_dir, base + '_target.pt'))
         return dat, target
     
     def __getitem__(self, idx):
-        base = Path(self.data_list[idx]).stem.split('_')[0]
-        # print(self.data_list[idx])
+        pdb_path = self.data_list[idx]
+        base = Path(pdb_path).stem.split('_')[0]
+
+        input_path = os.path.join(self.processed_dir, base + '_input.pt')
+        target_path = os.path.join(self.processed_dir, base + '_target.pt')
+
+        if not self.force_rebuild and os.path.exists(input_path) and os.path.exists(target_path):
+            dat = torch.load(input_path)
+            target = torch.load(target_path)
+        else:
+            dat, target = self._build_data(pdb_path)
+
         if self.use_barcodes:
-            # The below commented out code is what you'd use if you had one barcode for each Betti no!
-            barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'*_{base}_emb*.pt')))
-            # print(self.barcode_dir)
-            # if len(barcode_list) != 3:
-            #     print(f'Looking in: {os.path.join(self.barcode_dir, f"*_{base}_emb*.pt")}')
-            #     print(f'Barcode parse error for sid {base}; found {len(barcode_list)}')
+            barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'{base}_*_emb_b*.pt')))
+            if len(barcode_list) != 3:
+                # Fall back to legacy naming pattern
+                barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'*_{base}_emb*.pt')))
             b0 = torch.load(barcode_list[0])
             b1 = torch.load(barcode_list[1])
             b2 = torch.load(barcode_list[2])
-            barcode = torch.cat([b0, b1 , b2], -1)
+            barcode = torch.cat([b0, b1, b2], -1)
         else:
             barcode = None
-        if self.use_preprocessed:
-            dat = torch.load(self.data_list[idx])
-            target = torch.load(self.data_list[idx].replace('input', 'target'))
-        else:
-            dat, target = self._build_data(self.data_list[idx])
+
         return dat, barcode, target, base
 
     def _get_node_positions(self, G: nx.graph) -> np.array:
@@ -228,8 +226,8 @@ class ProteinDataset(Dataset):
             aas_ohe = np.array([onek_encoding_unk(x, STANDARD_AMINO_ACIDS) for x in aas]).astype(float)
             return np.concatenate([aas_ohe,rsas, esm_emb], -1).reshape(-1, 1280+25, 1)
         except Exception as e:
+            print(f'Error generating features for sid {base}: {e}')
             return np.zeros((G.number_of_nodes(), 1280+25, 1))
-            print(f'Error generating features for sid {base}')
     
     def _get_edge_lengths(self, G: nx.Graph) -> np.array:
         node_dict = dict(G.nodes(data=True))
@@ -256,14 +254,14 @@ def collate_barcodes(samples):
     return batched_graph, barcodes, target, base
 
 @click.command()
-@click.option('--pdb_dir', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/train/pdbs')
-@click.option('--sol_df', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/csvs/training_set.csv')
+@click.option('--pdb_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
+@click.option('--sol_df', default = '/home/sabari/ProteinSol/combining_geom_topo/data/csvs/training_set.csv')
 @click.option('--mode', default = 'train')
-@click.option('--use_barcodes', default = True)
-@click.option('--cache_processed', default = True)
-@click.option('--processed_dir', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/preprocessed')
-@click.option('--barcode_dir', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/rips_embeddings')
-@click.option('--esm_dir', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/esm_embeddings')
+@click.option('--use_barcodes', default = False)
+@click.option('--processed_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
+@click.option('--barcode_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
+@click.option('--esm_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
+@click.option('--force_rebuild', is_flag = True, default = False, help = 'Rebuild all cached .pt files even if they exist')
 @click.option('--batch_size', default = 32)
 @click.option('--shuffle', default = True)
 @click.option('--num_workers', default = 16)
@@ -271,10 +269,10 @@ def build_dataset(pdb_dir,
                   sol_df,
                   mode,
                   use_barcodes,
-                  cache_processed,
                   processed_dir,
                   barcode_dir,
                   esm_dir,
+                  force_rebuild,
                   batch_size,
                   shuffle,
                   num_workers):
@@ -282,16 +280,16 @@ def build_dataset(pdb_dir,
                              sol_df = sol_df,
                              mode = mode,
                              use_barcodes = use_barcodes,
-                             cache_processed = cache_processed,
                              processed_dir = processed_dir,
                              barcode_dir = barcode_dir,
-                             esm_dir = esm_dir)
+                             esm_dir = esm_dir,
+                             force_rebuild = force_rebuild)
     dataloader = DataLoader(dataset,
                             batch_size = batch_size,
                             shuffle = shuffle,
                             collate_fn = collate_barcodes,
                             num_workers = num_workers)
-    for data in dataloader:
+    for _ in dataloader:
         pass
 
 if __name__ == '__main__':

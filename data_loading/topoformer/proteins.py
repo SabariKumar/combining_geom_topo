@@ -138,8 +138,7 @@ class ProteinDataModule(DataModule):
                  sol_df: pathlib.Path,
                  processed_dir: pathlib.Path,
                  use_barcodes: bool = False,
-                 cache_processed: bool = False,
-                 use_preprocessed: bool = True,
+                 force_rebuild: bool = False,
                  barcode_dir = '../../data/soluprotgeom/processed/train/gudhi_embeddings',
                  task: str = 'homo',
                  batch_size: int = 240,
@@ -157,8 +156,7 @@ class ProteinDataModule(DataModule):
                  **kwargs):
         self.pdb_dir = pdb_dir  # This, along with all the protein dataset stuff, needs to be before __init__ so that prepare_data has access to it
         self.sol_df = sol_df
-        self.cache_processed = cache_processed
-        self.use_preprocessed = use_preprocessed
+        self.force_rebuild = force_rebuild
         self.processed_dir = processed_dir
         super().__init__(batch_size=batch_size, num_workers=num_workers, collate_fn=self._collate)
         self.amp = amp
@@ -169,32 +167,29 @@ class ProteinDataModule(DataModule):
         if precompute_bases:
             bases_kwargs = dict(max_degree=num_degrees - 1, use_pad_trick=using_tensor_cores(amp), amp=amp)
             full_dataset = CachedBasesProteinDataset(bases_kwargs=bases_kwargs, batch_size=batch_size,
-                                                     num_workers=num_workers, 
-                                                     pdb_dir = self.pdb_dir,                         
+                                                     num_workers=num_workers,
+                                                     pdb_dir = self.pdb_dir,
                                                      sol_df = self.sol_df,
-                                                     mode = 'train', 
+                                                     mode = 'train',
                                                      use_barcodes = use_barcodes,
-                                                     cache_processed = self.cache_processed,
-                                                     use_preprocessed = self.use_preprocessed,
+                                                     force_rebuild = self.force_rebuild,
                                                      processed_dir = self.processed_dir,
                                                      barcode_dir = barcode_dir)
             if external_test:
                 test_dataset = CachedBasesProteinDataset(bases_kwargs=bases_kwargs, batch_size=batch_size,
-                                                     num_workers=num_workers, 
-                                                     pdb_dir = external_test,                         
+                                                     num_workers=num_workers,
+                                                     pdb_dir = external_test,
                                                      sol_df = external_df,
-                                                     mode = 'test', 
+                                                     mode = 'test',
                                                      use_barcodes = use_barcodes,
-                                                     cache_processed = False,
-                                                     use_preprocessed = False,
+                                                     force_rebuild = True,
                                                      barcode_dir = external_barcode_dir)
         else:
-            full_dataset = ProteinDataset(pdb_dir = self.pdb_dir,                         
+            full_dataset = ProteinDataset(pdb_dir = self.pdb_dir,
                               sol_df = self.sol_df,
-                              mode = 'train', 
+                              mode = 'train',
                               use_barcodes = use_barcodes,
-                              cache_processed = self.cache_processed,
-                              use_preprocessed = self.use_preprocessed,
+                              force_rebuild = self.force_rebuild,
                               processed_dir = self.processed_dir,
                               barcode_dir = barcode_dir)
             
@@ -214,13 +209,7 @@ class ProteinDataModule(DataModule):
         self.targets_std = train_targets.std()
 
     def prepare_data(self):
-        if not self.use_preprocessed:
-        # Regen protein data
-            ProteinDataset(pdb_dir = self.pdb_dir,
-                        sol_df = self.sol_df,
-                        mode = 'train', use_barcodes = True,  cache_processed = True, 
-                        processed_dir = self.processed_dir,
-                        barcode_dir = self.barcode_dir)
+        pass  # Cache-through in __getitem__ handles pre-generation automatically
 
     def _collate(self, samples):
         graphs, barcodes, y, sids, *bases = map(list, zip(*samples))
@@ -276,8 +265,7 @@ class Protein5FoldsModule(DataModule):
                  sol_df: pathlib.Path,
                  processed_dir: pathlib.Path,
                  use_barcodes: bool = False,
-                 cache_processed: bool = False,
-                 use_preprocessed: bool = True,
+                 force_rebuild: bool = False,
                  barcode_dir = '/home/sabari/ProteinSol/se3_transformer_nvidia/SE3Transformer/se3_transformer/data_loading/data/topological_embeddings/atol/',
                  task: str = 'homo',
                  batch_size: int = 240,
@@ -288,8 +276,7 @@ class Protein5FoldsModule(DataModule):
                  **kwargs):
         self.pdb_dir = pdb_dir  # This, along with all the protein dataset stuff, needs to be before __init__ so that prepare_data has access to it
         self.sol_df = sol_df
-        self.cache_processed = cache_processed
-        self.use_preprocessed = use_preprocessed
+        self.force_rebuild = force_rebuild
         self.processed_dir = processed_dir
         self.use_barcodes = use_barcodes
         super().__init__(batch_size=batch_size, num_workers=num_workers, collate_fn=self._collate)
@@ -301,22 +288,20 @@ class Protein5FoldsModule(DataModule):
         if precompute_bases:
             bases_kwargs = dict(max_degree=num_degrees - 1, use_pad_trick=using_tensor_cores(amp), amp=amp)
             full_dataset = CachedBasesProteinDataset(bases_kwargs=bases_kwargs, batch_size=batch_size,
-                                                     num_workers=num_workers, 
-                                                     pdb_dir = self.pdb_dir,                         
+                                                     num_workers=num_workers,
+                                                     pdb_dir = self.pdb_dir,
                                                      sol_df = self.sol_df,
-                                                     mode = 'train', 
+                                                     mode = 'train',
                                                      use_barcodes = self.use_barcodes,
-                                                     cache_processed = self.cache_processed,
-                                                     use_preprocessed = self.use_preprocessed,
+                                                     force_rebuild = self.force_rebuild,
                                                      processed_dir = self.processed_dir,
                                                      barcode_dir = barcode_dir)
         else:
-            full_dataset = ProteinDataset(pdb_dir = self.pdb_dir,                         
+            full_dataset = ProteinDataset(pdb_dir = self.pdb_dir,
                               sol_df = self.sol_df,
-                              mode = 'train', 
+                              mode = 'train',
                               use_barcodes = self.use_barcodes,
-                              cache_processed = self.cache_processed,
-                              use_preprocessed = self.use_preprocessed,
+                              force_rebuild = self.force_rebuild,
                               processed_dir = self.processed_dir)
             
         kf = KFold(n_splits = 5, random_state = RANDOM_STATE, shuffle=True)    
@@ -330,12 +315,7 @@ class Protein5FoldsModule(DataModule):
         self.targets_std = train_targets.std()
 
     def prepare_data(self):
-        if not self.use_preprocessed:
-        # Regen protein data
-            ProteinDataset(pdb_dir = '/workspace/se3-transformer/se3_transformer/data_loading/data/raw',
-                        sol_df = '/workspace/se3-transformer/se3_transformer/data_loading/data/raw/training_set.csv',
-                        mode = 'train', use_barcodes = False,  cache_processed = True, 
-                        processed_dir = '/workspace/se3-transformer/se3_transformer/data_loading/data/processed')
+        pass  # Cache-through in __getitem__ handles pre-generation automatically
 
     def _collate(self, samples):
         graphs, barcodes, y, sids, *bases = map(list, zip(*samples))
