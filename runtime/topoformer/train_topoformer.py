@@ -305,7 +305,7 @@ if __name__ == '__main__':
     datamodule = ProteinDataModule(pdb_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/pdbs',
                                    sol_df = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/csvs/combined_filtered.csv',
                                    mode = 'train',
-                                   use_barcodes = True,  cache_processed = False, use_preprocessed = True,
+                                   use_barcodes = True,
                                    processed_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/preprocessed',
                                    barcode_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/rips_embeddings/',
                                    **vars(args))
