@@ -1,1 +1,1 @@
-__all__ = ["rips_loader"]
+__all__ = ["topocoder_loader"]

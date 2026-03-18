@@ -141,8 +141,11 @@ class ProteinDataset(Dataset):
         return sorted(glob.glob(os.path.join(self.pdb_dir, '*.pdb')))
         
     def _build_data(self, input_pdb):
-        pdb_path, _ = clean_pdb(input_pdb)
-        base = Path(pdb_path).stem.split('_')[0] # works even for the preprocessed files 
+        if '_dssp_edits' in input_pdb:
+            pdb_path = input_pdb
+        else:
+            pdb_path, _ = clean_pdb(input_pdb)
+        base = Path(pdb_path).stem.split('_')[0]
         esm_emb = torch.load(str(os.path.join(self.esm_dir, str(base) + '.pt'))).cpu().numpy()
         #Build the protein graph using graphein's low level API
         pdb_processing_funcs = [deprotonate_structure, 

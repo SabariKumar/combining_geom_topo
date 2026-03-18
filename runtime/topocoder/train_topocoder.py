@@ -20,7 +20,7 @@ import sys
 
 sys.path.append("/home/sabari/ProteinSol/topoformer")
 
-from data_loading.topocoder.rips_loader import make_dataloaders
+from data_loading.topocoder.topocoder_loader import make_dataloaders
 from model.topocoder.topocoder import TopoCoder
 
 print(f"Using torch version: {torch.__version__}")

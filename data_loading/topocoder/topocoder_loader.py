@@ -23,7 +23,7 @@ torch.backends.cudnn.deterministic = True
 generator = torch.Generator().manual_seed(RANDOM_SEED)
 
 
-class PIProteinDataset(Dataset):
+class TopoCoderDataset(Dataset):
     def __init__(
         self, input_type, labels_path, data_dir, return_labels: bool = False
     ) -> None:
@@ -108,7 +108,7 @@ def make_dataloaders(
     train_pi_dir: Union[str, bytes, os.PathLike],
     labels_path: Union[
         str, bytes, os.PathLike
-    ] = "/home/sabari/ProteinSol/topoformer/data/soluprotgeom_expt/processed/labels.npy",
+    ] = "/home/sabari/ProteinSol/combining_geom_topo/data/topocoder_labels/1_normalization/labels.npy",
     splits: Optional[List[float]] = [0.8, 0.1, 0.1],
     batch_size: int = 1000,
     shuffle_train: bool = True,
@@ -119,7 +119,7 @@ def make_dataloaders(
     loader_dict = {}
     for betti_ in betti_no:
         data_dir = str(os.path.join(train_pi_dir, f"betti_{betti_}"))
-        data_set = PIProteinDataset(
+        data_set = TopoCoderDataset(
             input_type=input_type, labels_path=labels_path, data_dir=data_dir
         )
         data_set.plot_seq_len_distribution()
@@ -161,10 +161,10 @@ def make_dataloaders(
     return loader_dict
 
 
-class ProteinInferenceDataset(Dataset):
+class TopoCoderInferenceDataset(Dataset):
     # Utility class for running batched inference to generate embeddings
     def __init__(self, 
-                 coords_dir: Union[str, bytes, os.PathLike] = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/coords',
+                 coords_dir: Union[str, bytes, os.PathLike] = '/home/sabari/ProteinSol/combining_geom_topo/data/topocoder_labels/1_normalization/betti_0',
                  pad_len: int = 15675):
         self.coords = glob.glob(os.path.join(coords_dir,  "*_coords.npy"))
         self.max_seq_len = pad_len
