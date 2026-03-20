@@ -146,7 +146,7 @@ class ProteinDataset(Dataset):
         else:
             pdb_path, _ = clean_pdb(input_pdb)
         base = Path(pdb_path).stem.split('_')[0]
-        esm_emb = torch.load(str(os.path.join(self.esm_dir, str(base) + '.pt'))).cpu().numpy()
+        esm_emb = torch.load(str(os.path.join(self.esm_dir, str(base) + '_esm.pt'))).cpu().numpy()
         #Build the protein graph using graphein's low level API
         pdb_processing_funcs = [deprotonate_structure, 
                                 convert_structure_to_centroids, 
@@ -195,10 +195,7 @@ class ProteinDataset(Dataset):
             dat, target = self._build_data(pdb_path)
 
         if self.use_barcodes:
-            barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'{base}_*_emb_b*.pt')))
-            if len(barcode_list) != 3:
-                # Fall back to legacy naming pattern
-                barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'*_{base}_emb*.pt')))
+            barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'{base}_emb_b*.pt')))
             b0 = torch.load(barcode_list[0])
             b1 = torch.load(barcode_list[1])
             b2 = torch.load(barcode_list[2])
