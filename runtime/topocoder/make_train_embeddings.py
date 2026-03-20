@@ -128,7 +128,7 @@ def main(pdb_dir, trained_model_dir, pad_len, batch_size, num_workers):
                 emb = topo_model(coords)
                 for i, name in enumerate(basenames):
                     sid = name.split('_', 1)[1]
-                    save_path = os.path.join(pdb_dir, f"{name}_emb_b{betti_no}.pt")
+                    save_path = os.path.join(pdb_dir, f"{sid}_emb_b{betti_no}.pt")
                     torch.save(emb[i:i+1].cpu(), save_path)
 
     print(f"\nDone. Embeddings saved to {pdb_dir}")
