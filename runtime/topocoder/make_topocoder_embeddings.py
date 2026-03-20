@@ -13,7 +13,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import random_split
 
 import sys
-sys.path.append("/home/sabari/ProteinSol/topoformer")
+sys.path.append("/home/sabari/ProteinSol/combining_geom_topo")
 
 from data_loading.topocoder.topocoder_loader import make_dataloaders, TopoCoderInferenceDataset
 from model.topocoder.topocoder import TopoCoder
