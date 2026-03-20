@@ -302,12 +302,12 @@ if __name__ == '__main__':
     #                                barcode_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/rips_embeddings/',
     #                                **vars(args))
     
-    datamodule = ProteinDataModule(pdb_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/pdbs',
-                                   sol_df = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/raw/csvs/combined_filtered.csv',
+    datamodule = ProteinDataModule(pdb_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                                   sol_df = '/home/sabari/ProteinSol/combining_geom_topo/data/csvs/training_set.csv',
                                    mode = 'train',
                                    use_barcodes = True,
-                                   processed_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/preprocessed',
-                                   barcode_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/combined/rips_embeddings/',
+                                   processed_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                                   barcode_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/topocoder_labels/train_embeddings/',
                                    **vars(args))
 
     now = datetime.datetime.now()

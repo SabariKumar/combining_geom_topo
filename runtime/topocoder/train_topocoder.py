@@ -18,7 +18,7 @@ from torch.utils.data import random_split
 
 import sys
 
-sys.path.append("/home/sabari/ProteinSol/topoformer")
+sys.path.append("/home/sabari/ProteinSol/combining_geom_topo")
 
 from data_loading.topocoder.topocoder_loader import make_dataloaders
 from model.topocoder.topocoder import TopoCoder
