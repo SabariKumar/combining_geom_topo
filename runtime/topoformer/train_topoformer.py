@@ -32,7 +32,11 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-from apex.optimizers import FusedAdam, FusedLAMB # type: ignore
+try:
+    from apex.optimizers import FusedAdam, FusedLAMB  # type: ignore
+except ImportError:
+    from torch.optim import AdamW as FusedAdam
+    FusedLAMB = None
 from torch.nn.modules.loss import _Loss
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
@@ -197,6 +201,8 @@ def train(model: nn.Module,
         optimizer = FusedAdam(model.parameters(), lr=args.learning_rate, betas=(args.momentum, 0.999),
                               weight_decay=args.weight_decay)
     elif args.optimizer == 'lamb':
+        if FusedLAMB is None:
+            raise ImportError("LAMB optimizer requires NVIDIA Apex. Install apex or use --optimizer adam")
         optimizer = FusedLAMB(model.parameters(), lr=args.learning_rate, betas=(args.momentum, 0.999),
                               weight_decay=args.weight_decay)
     else:

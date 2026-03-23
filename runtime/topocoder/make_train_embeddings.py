@@ -43,7 +43,7 @@ def get_unique_pdbs(pdb_dir):
     pdb_files = glob.glob(os.path.join(pdb_dir, '*.pdb'))
     sid_to_pdb = {}
     for pdb in pdb_files:
-        sid = os.path.basename(pdb).split('_')[0]
+        sid = os.path.splitext(os.path.basename(pdb))[0].split('_')[0]
         if sid not in sid_to_pdb or len(pdb) < len(sid_to_pdb[sid]):
             sid_to_pdb[sid] = pdb
     return sid_to_pdb
