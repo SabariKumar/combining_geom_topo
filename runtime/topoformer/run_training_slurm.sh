@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:v100-32:4
 #SBATCH -p GPU-shared
-#SBATCH --output=%g_%x_out.log
-#SBATCH --error=%g_%x_err.log
+#SBATCH --output=results/%g_%x_out.log
+#SBATCH --error=results/%g_%x_err.log
 #SBATCH --mail-type=END
 #SBATCH --mail-user=sabarik@colostate.edu
 
