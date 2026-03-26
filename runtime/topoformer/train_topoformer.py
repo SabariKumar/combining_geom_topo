@@ -32,11 +32,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-try:
-    from apex.optimizers import FusedAdam, FusedLAMB  # type: ignore
-except ImportError:
-    from torch.optim import AdamW as FusedAdam
-    FusedLAMB = None
+from torch.optim import AdamW as FusedAdam
 from torch.nn.modules.loss import _Loss
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
@@ -60,6 +56,8 @@ from model.topoformer.utils import to_cuda, get_local_rank, init_distributed, se
 torch.autograd.set_detect_anomaly(True)
 import warnings
 warnings.filterwarnings('error', message='.*requires.*')
+
+FusedLAMB = None
 
 def save_state(model: nn.Module, optimizer: Optimizer, epoch: int, path: pathlib.Path, callbacks: List[BaseCallback]):
     """ Saves model, optimizer and epoch states to path (only once per node) """
