@@ -9,7 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 python = ">=3.10"
-pytorch = { version = ">=2.4", channel = "pytorch" }
+pytorch = { version = ">=2.4,<2.5", channel = "pytorch" }
 pytorch-cuda = { version = "12.4.*", channel = "pytorch" }
 dgl = ">=2.0"
 numpy = ">=1.24,<2"
