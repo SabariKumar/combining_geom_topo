@@ -100,7 +100,11 @@ def init_distributed() -> bool:
 
 def increase_l2_fetch_granularity():
     # maximum fetch granularity of L2: 128 bytes
-    _libcudart = ctypes.CDLL('libcudart.so')
+    try:
+        _libcudart = ctypes.CDLL('libcudart.so')
+    except OSError:
+        logging.warning('libcudart.so not found; skipping L2 fetch granularity optimization.')
+        return
     # set device limit on the current device
     # cudaLimitMaxL2FetchGranularity = 0x05
     pValue = ctypes.cast((ctypes.c_int * 1)(), ctypes.POINTER(ctypes.c_int))
