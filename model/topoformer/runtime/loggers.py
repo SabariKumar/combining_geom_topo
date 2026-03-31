@@ -21,16 +21,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES
 # SPDX-License-Identifier: MIT
 
+import json
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, Any, Callable, Optional
 import pandas as pd
 
-#import dllogger # type: ignore
 import torch.distributed as dist
 import wandb
-#from dllogger import Verbosity # type: ignore
 import torch
 import sys
 sys.path.append("/home/sabari/ProteinSol/topoformer")
@@ -109,21 +108,19 @@ class DLLogger(Logger):
         super().__init__()
         if not dist.is_initialized() or dist.get_rank() == 0:
             save_dir.mkdir(parents=True, exist_ok=True)
-            dllogger.init(
-                backends=[dllogger.StdOutBackend(Verbosity.DEFAULT), 
-                          dllogger.JSONStreamBackend(Verbosity.DEFAULT, str(save_dir / filename))])
+            self._log_path = save_dir / filename
+            self._log_file = open(self._log_path, 'a')
 
     @rank_zero_only
     def log_hyperparams(self, params):
         params = self._sanitize_params(params)
-        dllogger.log(step="PARAMETER", data=params)
+        self._log_file.write(json.dumps({"step": "PARAMETER", "data": params}) + "\n")
+        self._log_file.flush()
 
     @rank_zero_only
     def log_metrics(self, metrics, step=None):
-        if step is None:
-            step = tuple()
-
-        dllogger.log(step=step, data=metrics)
+        self._log_file.write(json.dumps({"step": step, "data": metrics}) + "\n")
+        self._log_file.flush()
 
     @rank_zero_only
     def log_table(self, table, table_name):
