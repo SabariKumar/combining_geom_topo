@@ -19,6 +19,7 @@ set -euo pipefail
 # Paths
 # ---------------------------------------------------------------------------
 REPO_DIR="${REPO_DIR:-${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}}"
+export REPO_DIR
 JOB_ID="${SLURM_JOB_ID:-local_$(date +%Y%m%d_%H%M%S)}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_DIR}/results/${JOB_ID}}"
 mkdir -p "${OUTPUT_DIR}"
