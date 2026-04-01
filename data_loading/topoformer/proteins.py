@@ -94,8 +94,6 @@ class CachedBasesProteinDataset(ProteinDataset):
 
     def __getitem__(self, idx: int):
         graph, barcode, label, sid = super().__getitem__(idx)
-        graph = dgl.to_double(graph)
-        graph = dgl.add_self_loop(graph)
         graph = dgl.to_float(graph)
         #print(f'bases in get_item: {self.bases}')
         if self.bases:
