@@ -312,7 +312,7 @@ if __name__ == '__main__':
     #                                barcode_dir = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/rips_embeddings/',
     #                                **vars(args))
     
-    _repo_dir = os.environ.get('REPO_DIR', '/home/sabari/ProteinSol/combining_geom_topo')
+    _repo_dir = os.environ.get('REPO_DIR', '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo')
     datamodule = ProteinDataModule(pdb_dir = os.path.join(_repo_dir, 'data/train'),
                                    sol_df = os.path.join(_repo_dir, 'data/csvs/training_set.csv'),
                                    mode = 'train',
