@@ -144,6 +144,12 @@ def train_epoch(model, train_dataloader, loss_fn, epoch_idx, grad_scaler, optimi
             grad_scaler.update()
             model.zero_grad(set_to_none=True)
 
+    if not loss_list:
+        raise RuntimeError(
+            f"Training dataloader yielded 0 batches in epoch {epoch_idx}. "
+            f"Dataset is empty — check that PDB files and the CSV exist at the configured paths, "
+            f"and that the DistributedSampler has samples for this rank."
+        )
     loss_df = pd.concat(loss_list)
     loss_df.columns = ['pred', 'label', 'sids']
 
@@ -312,7 +318,7 @@ if __name__ == '__main__':
                                    mode = 'train',
                                    use_barcodes = True,
                                    processed_dir = os.path.join(_repo_dir, 'data/train'),
-                                   barcode_dir = os.path.join(_repo_dir, 'data/topocoder_labels/train_embeddings/'),
+                                   barcode_dir = os.path.join(_repo_dir, 'data/train/'),
                                    **vars(args))
 
     now = datetime.datetime.now()
