@@ -320,6 +320,9 @@ if __name__ == '__main__':
                                    use_barcodes = True,
                                    processed_dir = os.path.join(_repo_dir, 'data/train'),
                                    barcode_dir = os.path.join(_repo_dir, 'data/train/'),
+                                   external_test = os.path.join(_repo_dir, 'data/test'),
+                                   external_df = os.path.join(_repo_dir, 'data/csvs/test_set.csv'),
+                                   external_barcode_dir = os.path.join(_repo_dir, 'data/test/'),
                                    **vars(args))
 
     now = datetime.datetime.now()

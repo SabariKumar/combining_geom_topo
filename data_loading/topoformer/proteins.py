@@ -190,7 +190,14 @@ class ProteinDataModule(DataModule):
                               force_rebuild = self.force_rebuild,
                               processed_dir = self.processed_dir,
                               barcode_dir = barcode_dir)
-            
+            if external_test:
+                test_dataset = ProteinDataset(pdb_dir = external_test,
+                                  sol_df = external_df,
+                                  mode = 'test',
+                                  use_barcodes = use_barcodes,
+                                  force_rebuild = True,
+                                  barcode_dir = external_barcode_dir)
+
         if stratified_split:
             train_ind, test_ind = get_strat_splits() #TODO
         else:
