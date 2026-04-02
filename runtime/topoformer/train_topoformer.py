@@ -155,8 +155,9 @@ def train_epoch(model, train_dataloader, loss_fn, epoch_idx, grad_scaler, optimi
 
     return loss_df, loss_acc / (i + 1)
 
-def test_epoch(model, test_dataloader, loss_fn, local_rank, run_id, args):
-    test_acc = torch.zeros((1, ), device = 'cuda')
+@torch.inference_mode()
+def test_epoch(model, test_dataloader, local_rank, run_id, args):
+    model.eval()
     loss_list = []
     for i, batch in tqdm(enumerate(test_dataloader), total = len(test_dataloader), unit = 'batch',
                          desc=f'Evaluating test', disable=(args.silent or local_rank != 0)):
@@ -165,7 +166,7 @@ def test_epoch(model, test_dataloader, loss_fn, local_rank, run_id, args):
         sids = batch_list.pop(0)
         batch = tuple(batch_list)
         *inputs, target = to_cuda(batch)
-        
+
         with torch.cuda.amp.autocast(enabled=args.amp):
             pred = model(*inputs)
             pred = torch.sigmoid(pred)
@@ -246,13 +247,12 @@ def train(model: nn.Module,
 
         if not args.benchmark and (
                 (args.eval_interval > 0 and (epoch_idx + 1) % args.eval_interval == 0) or epoch_idx + 1 == args.epochs):
-            val_loss = evaluate_barcodes(model, val_dataloader, callbacks, run_id, args)
+            val_df = evaluate_barcodes(model, val_dataloader, callbacks, run_id, args)
             model.train()
 
             for callback in callbacks:
                 callback.on_validation_end(epoch_idx)
-            logger.log_metrics({'val loss': val_loss})
-            logger.log_table(val_loss, 'val_preds')
+            logger.log_table(val_df, 'val_preds')
 
         logger.log_table(loss_df, 'train_preds')
 
@@ -263,8 +263,9 @@ def train(model: nn.Module,
     for callback in callbacks:
         callback.on_fit_end()
 
-    test_loss = test_epoch(model, test_dataloader, loss_fn, local_rank, run_id, args)    
+    test_loss = test_epoch(model, test_dataloader, local_rank, run_id, args)
     logger.log_table(test_loss, 'test_preds')
+    logger.log_artifact(test_loss, 'test_preds', run_id, pathlib.Path(args.log_dir))
 
 def print_parameters_count(model):
     num_params_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
