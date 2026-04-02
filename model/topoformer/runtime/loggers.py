@@ -57,6 +57,11 @@ class Logger(ABC):
     def log_grads(self, model):
         pass
 
+    @rank_zero_only
+    @abstractmethod
+    def log_artifact(self, table: pd.DataFrame, artifact_name: str, run_id: str, log_dir: pathlib.Path) -> None:
+        pass
+
     @staticmethod
     def _sanitize_params(params):
         def _sanitize(val):
@@ -103,6 +108,11 @@ class LoggerCollection(Logger):
         for logger in self.loggers:
             logger.log_grads(model)
 
+    @rank_zero_only
+    def log_artifact(self, table: pd.DataFrame, artifact_name: str, run_id: str, log_dir: pathlib.Path) -> None:
+        for logger in self.loggers:
+            logger.log_artifact(table, artifact_name, run_id, log_dir)
+
 class DLLogger(Logger):
     def __init__(self, save_dir: pathlib.Path, filename: str):
         super().__init__()
@@ -128,6 +138,10 @@ class DLLogger(Logger):
 
     @rank_zero_only
     def log_grads(self, model):
+        pass
+
+    @rank_zero_only
+    def log_artifact(self, table: pd.DataFrame, artifact_name: str, run_id: str, log_dir: pathlib.Path) -> None:
         pass
 
 
@@ -168,3 +182,11 @@ class WandbLogger(Logger):
     @rank_zero_only
     def log_grads(self, model: torch.nn.Module) -> None:
         wandb.watch(models = model, log = 'all', log_freq = 2, log_graph = True)
+
+    @rank_zero_only
+    def log_artifact(self, table: pd.DataFrame, artifact_name: str, run_id: str, log_dir: pathlib.Path) -> None:
+        csv_path = log_dir / f'{run_id}_{artifact_name}.csv'
+        table.to_csv(csv_path, index=True)
+        artifact = wandb.Artifact(name=f'{run_id}_{artifact_name}', type='predictions')
+        artifact.add_file(str(csv_path))
+        self.experiment.log_artifact(artifact)

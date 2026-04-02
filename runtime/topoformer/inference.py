@@ -95,15 +95,15 @@ def evaluate_barcodes(model: nn.Module,
         with torch.cuda.amp.autocast(enabled=args.amp):
             input = set_requires_grad(input)
             pred = model(*input)
-            pred = torch.sigmoid(pred) 
-            loss_dict = dict(zip(sids, zip(pred.detach().cpu().numpy(), target.detach().cpu().numpy())))
+            pred = torch.sigmoid(pred)
+            loss_dict = dict(zip(sids, zip(pred.detach().cpu().numpy(), target.detach().cpu().numpy(), sids)))
             loss_list.append(pd.DataFrame.from_dict(loss_dict, orient = 'index'))
 
             for callback in callbacks:
                 callback.on_validation_step(input, target, pred)
 
         loss_df = pd.concat(loss_list)
-        loss_df.columns = ['pred', 'label']
+        loss_df.columns = ['pred', 'label', 'sids']
         loss_df.to_csv(os.path.join(args.log_dir, f'{run_id}_valid_losses.csv'))
         loss_df.to_pickle(os.path.join(args.log_dir, f'{run_id}_valid_losses.pickle'))
 
