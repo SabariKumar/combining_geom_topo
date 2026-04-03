@@ -147,6 +147,7 @@ class ProteinDataModule(DataModule):
                  external_test = None,
                  external_df = None,
                  external_barcode_dir = None,
+                 external_esm_dir = None,
                  stratified_split = None,
                  #external_test = '/home/sabari/ProteinSol/se3_transformer_nvidia/SE3Transformer/se3_transformer/data_loading/data/test_set',
                  #external_df = '/home/sabari/ProteinSol/se3_transformer_nvidia/SE3Transformer/se3_transformer/data_loading/data/test_set/test_set.csv',
@@ -172,7 +173,8 @@ class ProteinDataModule(DataModule):
                                                      use_barcodes = use_barcodes,
                                                      force_rebuild = self.force_rebuild,
                                                      processed_dir = self.processed_dir,
-                                                     barcode_dir = barcode_dir)
+                                                     barcode_dir = barcode_dir,
+                                                     esm_dir = self.pdb_dir)
             if external_test:
                 test_dataset = CachedBasesProteinDataset(bases_kwargs=bases_kwargs, batch_size=batch_size,
                                                      num_workers=num_workers,
@@ -181,7 +183,8 @@ class ProteinDataModule(DataModule):
                                                      mode = 'test',
                                                      use_barcodes = use_barcodes,
                                                      force_rebuild = True,
-                                                     barcode_dir = external_barcode_dir)
+                                                     barcode_dir = external_barcode_dir,
+                                                     esm_dir = external_esm_dir or external_test)
         else:
             full_dataset = ProteinDataset(pdb_dir = self.pdb_dir,
                               sol_df = self.sol_df,
@@ -189,14 +192,16 @@ class ProteinDataModule(DataModule):
                               use_barcodes = use_barcodes,
                               force_rebuild = self.force_rebuild,
                               processed_dir = self.processed_dir,
-                              barcode_dir = barcode_dir)
+                              barcode_dir = barcode_dir,
+                              esm_dir = self.pdb_dir)
             if external_test:
                 test_dataset = ProteinDataset(pdb_dir = external_test,
                                   sol_df = external_df,
                                   mode = 'test',
                                   use_barcodes = use_barcodes,
                                   force_rebuild = True,
-                                  barcode_dir = external_barcode_dir)
+                                  barcode_dir = external_barcode_dir,
+                                  esm_dir = external_esm_dir or external_test)
 
         if stratified_split:
             train_ind, test_ind = get_strat_splits() #TODO
