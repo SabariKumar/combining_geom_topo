@@ -111,12 +111,12 @@ class ProteinDataset(Dataset):
 
     num_bonds = 8
     node_feature_size = 25
-    def __init__(self, pdb_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
-                sol_df = '/home/sabari/ProteinSol/combining_geom_topo/data/csvs/training_set.csv',
+    def __init__(self, pdb_dir = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train',
+                sol_df = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/csvs/training_set.csv',
                 mode: str = 'train', use_barcodes = False,
-                processed_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
-                barcode_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
-                esm_dir = '/home/sabari/ProteinSol/combining_geom_topo/data/train',
+                processed_dir = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train',
+                barcode_dir = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train',
+                esm_dir = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train',
                 force_rebuild = False):
         self.pdb_dir = pdb_dir
         self.sol_df = sol_df
@@ -254,13 +254,13 @@ def collate_barcodes(samples):
     return batched_graph, barcodes, target, base
 
 @click.command()
-@click.option('--pdb_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
-@click.option('--sol_df', default = '/home/sabari/ProteinSol/combining_geom_topo/data/csvs/training_set.csv')
+@click.option('--pdb_dir', default = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train')
+@click.option('--sol_df', default = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/csvs/training_set.csv')
 @click.option('--mode', default = 'train')
 @click.option('--use_barcodes', default = False)
-@click.option('--processed_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
-@click.option('--barcode_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
-@click.option('--esm_dir', default = '/home/sabari/ProteinSol/combining_geom_topo/data/train')
+@click.option('--processed_dir', default = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train')
+@click.option('--barcode_dir', default = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train')
+@click.option('--esm_dir', default = '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo/data/train')
 @click.option('--force_rebuild', is_flag = True, default = False, help = 'Rebuild all cached .pt files even if they exist')
 @click.option('--batch_size', default = 32)
 @click.option('--shuffle', default = True)

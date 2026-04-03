@@ -40,7 +40,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from tqdm import tqdm
 
 import sys
-sys.path.append("/home/sabari/ProteinSol/topoformer")
+sys.path.append("/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo")
 from data_loading.topoformer.proteins import ProteinDataModule 
 from model.topoformer.transformer import TopoformerPooled
 from model.topoformer.fiber import Fiber
