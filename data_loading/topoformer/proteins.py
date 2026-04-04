@@ -18,6 +18,14 @@ from model.topoformer.utils import get_local_rank, str2bool, using_tensor_cores
 from data_loading.topoformer.protein_dataset import ProteinDataset
 
 from sklearn.model_selection import KFold
+
+
+def _collate_graphs(samples):
+    return dgl.batch([sample[0] for sample in samples])
+
+
+def _collate_graphs_and_sids(samples):
+    return dgl.batch([sample[0] for sample in samples]), [sample[-1] for sample in samples]
 RANDOM_STATE = 42
 
 def _get_relative_pos(graph):
@@ -65,7 +73,7 @@ class CachedBasesProteinDataset(ProteinDataset):
         # Need this to get the edge cumsum value for basis calc indexing
         # Can't put this in load since dataloader iteration needs to be fully sequential!
         dataloader = DataLoader(self, shuffle=False, batch_size=1, num_workers=1,
-                                collate_fn=lambda samples: dgl.batch([sample[0] for sample in samples]))
+                                collate_fn=_collate_graphs)
         n_edge = []
         sids = []
         for i, graph in tqdm(enumerate(dataloader), total=len(dataloader), desc='Computing aggregate edge numbers',
@@ -79,7 +87,7 @@ class CachedBasesProteinDataset(ProteinDataset):
         # Iterate through the dataset and compute bases (pairwise only)
         # Potential improvement: use multi-GPU and gather
         dataloader = DataLoader(self, shuffle=False, batch_size=self.batch_size, num_workers=self.num_workers,
-                                collate_fn=lambda samples: (dgl.batch([sample[0] for sample in samples]), [sample[-1] for sample in samples]))
+                                collate_fn=_collate_graphs_and_sids)
         bases = []
         sids = []
         for i, graph in tqdm(enumerate(dataloader), total=len(dataloader), desc='Precomputing QM9 bases',
