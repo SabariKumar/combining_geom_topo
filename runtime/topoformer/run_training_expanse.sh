@@ -39,6 +39,8 @@ NUM_CHANNELS=${8:-64}
 # ---------------------------------------------------------------------------
 export PYTHONPATH="${REPO_DIR}:${PYTHONPATH:-}"
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 echo "Job ID: ${JOB_ID}"
 echo "Node:   $(hostname)"
 echo "Start:  $(date)"
@@ -85,7 +87,6 @@ torchrun \
     --use_layer_norm \
     --norm \
     --save_ckpt_path "${OUTPUT_DIR}/topoformer_model.pth" \
-    --precompute_bases \
     --seed 42 \
     --wandb \
     --low_memory \
