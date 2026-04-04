@@ -22,9 +22,13 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import multiprocessing
 import pathlib
 from typing import List
 import os
+
+if multiprocessing.get_start_method(allow_none=True) != 'spawn':
+    multiprocessing.set_start_method('spawn', force=True)
 import pandas as pd
 import datetime
 
