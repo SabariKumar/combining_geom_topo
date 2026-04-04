@@ -59,7 +59,7 @@ from model.topoformer.utils import to_cuda, get_local_rank, init_distributed, se
 
 torch.autograd.set_detect_anomaly(True)
 import warnings
-warnings.filterwarnings('error', message='.*requires.*')
+warnings.filterwarnings('ignore', message='.*requires_grad.*')
 
 FusedLAMB = None
 

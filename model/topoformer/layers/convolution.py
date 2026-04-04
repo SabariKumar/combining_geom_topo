@@ -210,7 +210,10 @@ class ConvSE3(nn.Module):
         self.self_interaction = self_interaction
         self.max_degree = max_degree
         self.allow_fused_output = allow_fused_output
-        self.conv_checkpoint = torch.utils.checkpoint.checkpoint if low_memory else lambda m, *x: m(*x)
+        self.conv_checkpoint = (
+            (lambda m, *x: torch.utils.checkpoint.checkpoint(m, *x, use_reentrant=False))
+            if low_memory else lambda m, *x: m(*x)
+        )
 
         # channels_in: account for the concatenation of edge features
         channels_in_set = set([f.channels + fiber_edge[f.degree] * (f.degree > 0) for f in self.fiber_in])
