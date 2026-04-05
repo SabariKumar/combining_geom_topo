@@ -243,6 +243,8 @@ class Topoformer(nn.Module):
                             help='If true, will use fused ops that are slower but that use less memory '
                                  '(expect 25 percent less memory). '
                                  'Only has an effect if AMP is enabled on Volta GPUs, or if running on Ampere GPUs')
+        parser.add_argument('--eq_dropout', type=float, default=0.0,
+                            help='Dropout probability applied to equivariant features between ContractRepsBlocks')
 
         return parser
     
