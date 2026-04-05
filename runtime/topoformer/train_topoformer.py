@@ -267,7 +267,10 @@ def train(model: nn.Module,
     for callback in callbacks:
         callback.on_fit_end()
 
-    test_loss = test_epoch(model, test_dataloader, local_rank, run_id, args)
+    test_callbacks = [ProteinMetricCallback(logger, targets_std=None, prefix='test')]
+    test_loss = evaluate_barcodes(model, test_dataloader, test_callbacks, run_id, args)
+    for callback in test_callbacks:
+        callback.on_validation_end()
     logger.log_table(test_loss, 'test_preds')
     logger.log_artifact(test_loss, 'test_preds', run_id, pathlib.Path(args.log_dir))
 
