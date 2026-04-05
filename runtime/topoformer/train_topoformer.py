@@ -134,7 +134,7 @@ def train_epoch(model, train_dataloader, loss_fn, epoch_idx, grad_scaler, optimi
             #loss_dict = dict(zip(sids, zip(pred_sig.detach().cpu().numpy(), target.detach().cpu().numpy(), sids)))
             loss_dict = dict(zip(sids, zip(pred_out.detach().cpu().numpy(), target_out.detach().cpu().numpy(), sids)))
             loss_list.append(pd.DataFrame.from_dict(loss_dict, orient = 'index'))
-            loss = loss_fn(pred_sig, target) / args.accumulate_grad_batches
+            loss = loss_fn(pred, target) / args.accumulate_grad_batches
         loss_acc += loss.detach()
         grad_scaler.scale(loss).backward()
 
@@ -349,9 +349,10 @@ if __name__ == '__main__':
         run_id = run_id,
         **vars(args)
     )
-    #loss_fn = nn.BCEWithLogitsLoss()
-    loss_fn = nn.BCELoss()
-    #loss_fn = nn.L1Loss()
+    # pos_weight balances the class imbalance: neg_count / pos_count
+    pos_rate = datamodule.targets_mean
+    pos_weight = torch.tensor([(1.0 - pos_rate) / pos_rate], device='cuda')
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     if args.benchmark:
         logging.info('Running benchmark mode')
@@ -383,3 +384,6 @@ if __name__ == '__main__':
     #print(model.transformer.last_layer_attention())
 
     logging.info('Training finished successfully')
+    if args.wandb and (not dist.is_initialized() or dist.get_rank() == 0):
+        import wandb
+        wandb.finish()
