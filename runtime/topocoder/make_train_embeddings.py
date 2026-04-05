@@ -119,6 +119,9 @@ def main(pdb_dir, trained_model_dir, pad_len, batch_size, num_workers):
         )
         ckpt_path = os.path.join(trained_model_dir, f'TopoCoderChkpt_Betti{betti_no}.pt')
         topo_model.load_state_dict(torch.load(ckpt_path, map_location=device)['state_dict'])
+        # The checkpoint was saved with a trailing ReLU after the final Linear layer,
+        # which zeroes out all-negative outputs. Remove it so the raw linear output is used.
+        topo_model.topo_net = torch.nn.Sequential(*list(topo_model.topo_net.children())[:-1])
         topo_model.to(device)
         topo_model.eval()
 

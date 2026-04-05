@@ -1,26 +1,14 @@
 import os
-from typing import List, Optional, Union
 
 import click  # type: ignore
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 import torch.utils.data as data
-import wandb
-from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import random_split
 
 import sys
 sys.path.append("/home/sabari/ProteinSol/combining_geom_topo")
 
-from data_loading.topocoder.topocoder_loader import make_dataloaders, TopoCoderInferenceDataset
+from data_loading.topocoder.topocoder_loader import TopoCoderInferenceDataset
 from model.topocoder.topocoder import TopoCoder
-print(f"Using torch version: {torch.__version__}")
-RANDOM_SEED = 42
-torch.backends.cudnn.deterministic = True
-generator = torch.Generator().manual_seed(RANDOM_SEED)
 
 @click.command()
 @click.option('--pdb_dir', default = '/home/sabari/ProteinSol/topoformer/data/soluprotgeom/processed/train/coords')
@@ -44,6 +32,8 @@ def make_topo_emb(pdb_dir, emb_save_dir, betti_no, trained_model_dir):
             use_sigmoid=False)
         topo_model.load_state_dict(torch.load(
             os.path.join(trained_model_dir, f'TopoCoderChkpt_Betti{betti_no}.pt'))['state_dict'])
+        # Remove trailing ReLU after final Linear — it zeroes all-negative outputs
+        topo_model.topo_net = torch.nn.Sequential(*list(topo_model.topo_net.children())[:-1])
         topo_model.eval()
         with torch.no_grad():
             for batch_idx, sample in enumerate(data_loader):
