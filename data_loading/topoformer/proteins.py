@@ -207,7 +207,8 @@ class ProteinDataModule(DataModule):
                                   sol_df = external_df,
                                   mode = 'test',
                                   use_barcodes = use_barcodes,
-                                  force_rebuild = True,
+                                  force_rebuild = False,
+                                  processed_dir = external_test,
                                   barcode_dir = external_barcode_dir,
                                   esm_dir = external_esm_dir or external_test)
 
