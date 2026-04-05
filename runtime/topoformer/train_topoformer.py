@@ -51,7 +51,7 @@ from model.topoformer.fiber import Fiber
 from model.topoformer.runtime import gpu_affinity
 from model.topoformer.runtime.arguments import PARSER
 from model.topoformer.runtime.callbacks import ProteinMetricCallback, QM9LRSchedulerCallback, BaseCallback, \
-    PerformanceCallback
+    PerformanceCallback, TestCorrectCountCallback
 from runtime.topoformer.inference import evaluate_barcodes
 from model.topoformer.runtime.loggers import LoggerCollection, DLLogger, WandbLogger, Logger
 from model.topoformer.utils import to_cuda, get_local_rank, init_distributed, seed_everything, \
@@ -257,6 +257,12 @@ def train(model: nn.Module,
             for callback in callbacks:
                 callback.on_validation_end(epoch_idx)
             logger.log_table(val_df, 'val_preds')
+
+        test_correct_callback = [TestCorrectCountCallback(logger)]
+        evaluate_barcodes(model, test_dataloader, test_correct_callback, run_id, args)
+        model.train()
+        for callback in test_correct_callback:
+            callback.on_validation_end(epoch_idx)
 
         logger.log_table(loss_df, 'train_preds')
 

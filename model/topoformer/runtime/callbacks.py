@@ -32,7 +32,7 @@ import torch
 import sys
 sys.path.append("/home/sabari/ProteinSol/topoformer")
 from model.topoformer.runtime.loggers import Logger
-from model.topoformer.runtime.metrics import MeanAbsoluteError, BinaryAccuracy
+from model.topoformer.runtime.metrics import MeanAbsoluteError, BinaryAccuracy, CorrectPredictions
 
 
 class BaseCallback(ABC):
@@ -138,6 +138,23 @@ class ProteinMetricCallback(BaseCallback):
         if self.best_acc != float('inf'):
             self.logger.log_metrics({f'{self.prefix} best acc': self.best_acc})
             self.logger.log_metrics({f'{self.prefix} last step acc': self.last_acc})
+
+
+class TestCorrectCountCallback(BaseCallback):
+    """Counts correct predictions at a configurable threshold and logs to wandb each epoch."""
+
+    def __init__(self, logger, threshold: float = 0.5):
+        self.correct = CorrectPredictions()
+        self.logger = logger
+        self.threshold = threshold
+
+    def on_validation_step(self, input, target, pred):
+        self.correct(pred.detach() >= self.threshold, target.detach())
+
+    def on_validation_end(self, epoch=None):
+        n_correct = self.correct.compute()
+        logging.info(f'Test correct predictions (thresh={self.threshold}): {n_correct}')
+        self.logger.log_metrics({'test correct predictions': n_correct}, epoch)
 
 
 class QM9LRSchedulerCallback(LRSchedulerCallback):
