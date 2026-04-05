@@ -27,7 +27,7 @@ mkdir -p "${OUTPUT_DIR}"
 # CLI args with defaults
 BATCH_SIZE=${1:-20}
 AMP=${2:-false}
-NUM_EPOCHS=${3:-20}
+NUM_EPOCHS=${3:-150}
 LEARNING_RATE=${4:-0.0001}
 WEIGHT_DECAY=${5:-0.01}
 NUM_LAYERS=${6:-5}
