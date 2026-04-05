@@ -83,6 +83,20 @@ class MeanAbsoluteError(Metric):
         return self.error / self.total
 
 
+class CorrectPredictions(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state('correct', torch.tensor(0, dtype=torch.int32, device='cuda'))
+
+    def update(self, preds: Tensor, targets: Tensor):
+        # preds should already be thresholded (bool or 0/1 int) by the caller
+        n = preds.shape[0]
+        self.correct += (preds.view(n, -1) == targets.view(n, -1)).all(dim=-1).sum().int()
+
+    def _compute(self):
+        return self.correct
+
+
 class BinaryAccuracy(Metric):
     def __init__(self):
         super().__init__()
