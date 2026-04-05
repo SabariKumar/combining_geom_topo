@@ -265,16 +265,16 @@ class TopoformerPooled(nn.Module):
         )
         self.post_pooled_feats = None
         n_out_features = fiber_out.num_features
+        dropout = kwargs.get('dropout', 0.3)
         self.mlp = nn.Sequential(
             nn.Linear(n_out_features, n_out_features),
             nn.ReLU(),
+            nn.Dropout(p=dropout),
             nn.Linear(n_out_features, output_dim)
         )
 
     def forward(self, graph, node_feats, topo_feats, edge_feats, basis=None):
         feats = self.transformer(graph, node_feats, topo_feats, edge_feats, basis).squeeze(-1)
-        torch.save(self.transformer.pre_pooled_feats, os.path.join(self.save_feats_dir, f'{self.run_id}_pre_pooling_node_feats.pt'))
-        torch.save(feats, os.path.join(self.save_feats_dir, f'{self.run_id}post_pooling_node_feats.pt'))
         y = self.mlp(feats).squeeze(-1)
         return y
 
@@ -293,6 +293,7 @@ class TopoformerPooled(nn.Module):
                             help='Number of degrees to use. Hidden features will have types [0, ..., num_degrees - 1]',
                             type=int, default=4)
         parser.add_argument('--num_channels', help='Number of channels for the hidden features', type=int, default=32)
+        parser.add_argument('--dropout', help='Dropout probability in the output MLP', type=float, default=0.3)
         return parent_parser
 
 class Topoformer(nn.Module):
