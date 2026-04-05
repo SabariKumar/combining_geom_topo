@@ -93,7 +93,6 @@ def evaluate_barcodes(model: nn.Module,
             callback.on_batch_start()
 
         with torch.cuda.amp.autocast(enabled=args.amp):
-            input = set_requires_grad(input)
             pred = model(*input)
             pred = torch.sigmoid(pred)
             loss_dict = dict(zip(sids, zip(pred.detach().cpu().numpy(), target.detach().cpu().numpy(), sids)))

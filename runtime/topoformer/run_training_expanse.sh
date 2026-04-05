@@ -92,7 +92,8 @@ torchrun \
     --low_memory \
     --num_layers "$NUM_LAYERS" \
     --num_degrees "$NUM_DEGREES" \
-    --num_heads 2
+    --num_heads 2 \
+    --dropout 0.3
 #   --num_channels "$NUM_CHANNELS"
 
 echo "Finished: $(date)"

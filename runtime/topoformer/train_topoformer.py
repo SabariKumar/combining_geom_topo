@@ -349,10 +349,7 @@ if __name__ == '__main__':
         run_id = run_id,
         **vars(args)
     )
-    # pos_weight balances the class imbalance: neg_count / pos_count
-    pos_rate = datamodule.targets_mean
-    pos_weight = torch.tensor([(1.0 - pos_rate) / pos_rate], device='cuda')
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    loss_fn = nn.BCEWithLogitsLoss()
 
     if args.benchmark:
         logging.info('Running benchmark mode')
