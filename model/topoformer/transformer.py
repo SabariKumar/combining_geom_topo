@@ -317,11 +317,11 @@ class Topoformer(nn.Module):
                  comb_type: str = 'fctp', #fctp or conv
                  topo_output_fiber: Fiber = Fiber({'0': 300}),
                  topo_embedding_dim: int = 300,
-                 topo_input_fiber: Fiber = Fiber({'0': 300}),
+                 topo_input_fiber: Fiber = Fiber({'0': 100}),
                  topo_num_heads: int = 2,
                  topo_dropout = 0.0,
                  use_topo_projection = False,
-                 topo_barcode_input_size = 300,
+                 topo_barcode_input_size = 100,
                  topo_proj_hidden_dim = 600,
                  topo_proj_dim = 300,
                  use_node_mha = True,
@@ -496,7 +496,7 @@ class ContractRepsBlock(nn.Module):
                  comb_type: str = 'attn', #fctp or attn
                  topo_output_fiber: Fiber = Fiber({'0': 300}),
                  topo_embedding_dim: int = 300,
-                 topo_input_fiber: Fiber = Fiber({'0': 300}),
+                 topo_input_fiber: Fiber = Fiber({'0': 100}),
                  topo_num_heads: int = 2,
                  topo_dropout = 0.0,
                  sum_residual = False,
@@ -543,7 +543,7 @@ class ContractRepsBlock(nn.Module):
         elif self.comb_type == 'attn':
             global_fiber = Fiber({'0': fiber_out[0]}) # Only zero order features!
             self.geom_fiber_to_k = LinearSE3(global_fiber, global_fiber)
-            self.topo_fiber_to_q = LinearSE3(Fiber({'0': 300}), global_fiber) # project topo into same fiber channels as fiber_out #TODO: harcoding
+            self.topo_fiber_to_q = LinearSE3(topo_output_fiber, global_fiber) # project topo into same fiber channels as fiber_out
             self.geom_fiber_to_v = LinearSE3(global_fiber, global_fiber)
             self.comb_norm = nn.LayerNorm(fiber_out[0])
         else:
@@ -750,5 +750,6 @@ class TopoModuleBlock(nn.Module):
                                           topo_num_heads = topo_num_heads,
                                           dropout = dropout, **kwargs)
     def forward(self, topo_vector_in: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        x = self.betti_block(topo_vector_in['0'])
+        x = self.betti_block(topo_vector_in['0'])  # (batch, 3, output_feature_dim)
+        x = x.mean(dim=1, keepdim=True)            # (batch, 1, output_feature_dim) — pool over betti tokens
         return {'0': x}
