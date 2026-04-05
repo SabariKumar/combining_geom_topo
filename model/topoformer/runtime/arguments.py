@@ -73,3 +73,6 @@ PARSER.add_argument('--benchmark', type=str2bool, nargs='?', const=True, default
 
 ProteinDataModule.add_argparse_args(PARSER)
 TopoformerPooled.add_argparse_args(PARSER)
+
+PARSER.add_argument('--eq_dropout', type=float, default=0.0,
+                    help='Dropout probability applied to equivariant features between ContractRepsBlocks')
