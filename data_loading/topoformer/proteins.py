@@ -222,8 +222,12 @@ class ProteinDataModule(DataModule):
             self.ds_train = full_dataset
             self.ds_test = test_dataset
 
-        train_indices = self.ds_train.indices if hasattr(self.ds_train, 'indices') else range(len(self.ds_train))
-        train_targets = full_dataset.sol_df['solubility'][train_indices].to_numpy(dtype = float)
+        if hasattr(self.ds_train, 'indices'):
+            # Subset: indices are positional, but sol_df is indexed by SID — use iloc
+            train_targets = full_dataset.sol_df['solubility'].iloc[self.ds_train.indices].to_numpy(dtype=float)
+        else:
+            # Full dataset (external_test path): just use all solubility values
+            train_targets = full_dataset.sol_df['solubility'].to_numpy(dtype=float)
         self.targets_mean = train_targets.mean()
         self.targets_std = train_targets.std()
 
