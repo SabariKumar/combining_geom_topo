@@ -196,10 +196,11 @@ class ProteinDataset(Dataset):
 
         if self.use_barcodes:
             barcode_list = sorted(glob.glob(os.path.join(self.barcode_dir, f'{base}_emb_b*.pt')))
-            b0 = torch.load(barcode_list[0])
-            b1 = torch.load(barcode_list[1])
-            b2 = torch.load(barcode_list[2])
-            barcode = torch.cat([b0, b1, b2], -1)
+            b0 = torch.load(barcode_list[0])  # shape [1, 100]
+            b1 = torch.load(barcode_list[1])  # shape [1, 100]
+            b2 = torch.load(barcode_list[2])  # shape [1, 100]
+            # Stack as 3 tokens of size 100 so BettiAttention can cross-attend between betti numbers
+            barcode = torch.cat([b0, b1, b2], dim=0)  # shape [3, 100]
         else:
             barcode = None
 

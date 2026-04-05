@@ -64,10 +64,15 @@ class TopoformerPooled(nn.Module):
             **kwargs
         )
         n_out_features = fiber_out.num_features
+        dropout = kwargs.get('dropout', 0.0)
+        output_layer = nn.Linear(n_out_features, output_dim)
+        nn.init.zeros_(output_layer.weight)
+        nn.init.constant_(output_layer.bias, 0.0)
         self.mlp = nn.Sequential(
             nn.Linear(n_out_features, n_out_features),
             nn.ReLU(),
-            nn.Linear(n_out_features, output_dim)
+            nn.Dropout(p=dropout),
+            output_layer
         )
 
     def forward(self, graph, node_feats, topo_feats, edge_feats, basis=None):
@@ -106,11 +111,11 @@ class Topoformer(nn.Module):
                 comb_type: str = 'fctp', #fctp or conv
                 topo_output_fiber: Fiber = Fiber({'0': 300}),
                 topo_embedding_dim: int = 300,
-                topo_input_fiber: Fiber = Fiber({'0': 300}),
+                topo_input_fiber: Fiber = Fiber({'0': 100}),
                 topo_num_heads: int = 2,
                 topo_dropout = 0.0,
                 use_topo_projection = False,
-                topo_barcode_input_size = 300,
+                topo_barcode_input_size = 100,
                 topo_proj_hidden_dim = 600,
                 topo_proj_dim = 300,
                 **kwargs):
@@ -467,5 +472,6 @@ class TopoModuleBlock(nn.Module):
                                           topo_num_heads = topo_num_heads,
                                           dropout = dropout, **kwargs)
     def forward(self, topo_vector_in: Dict[str, Tensor]) -> Dict[str, Tensor]:
-        x = self.betti_block(topo_vector_in['0'])
+        x = self.betti_block(topo_vector_in['0'])  # (batch, 3, output_feature_dim)
+        x = x.mean(dim=1, keepdim=True)            # (batch, 1, output_feature_dim) — pool over betti tokens
         return {'0': x}

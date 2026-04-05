@@ -350,7 +350,7 @@ if __name__ == '__main__':
         fiber_edge = Fiber({0: datamodule.EDGE_FEATURE_DIM}),
         tensor_cores = using_tensor_cores(args.amp),
         comb_type = 'attn', #fctp or conv
-        use_topo_projection = True,
+        use_topo_projection = False,
         save_feats_dir = os.path.join(args.log_dir),
         run_id = run_id,
         **vars(args)
