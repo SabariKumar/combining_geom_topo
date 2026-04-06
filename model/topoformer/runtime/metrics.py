@@ -69,8 +69,9 @@ class Metric(ABC):
 class MeanAbsoluteError(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state('error', torch.tensor(0, dtype=torch.float32, device='cuda'))
-        self.add_state('total', torch.tensor(0, dtype=torch.int32, device='cuda'))
+        device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        self.add_state('error', torch.tensor(0, dtype=torch.float32, device=device))
+        self.add_state('total', torch.tensor(0, dtype=torch.int32, device=device))
 
     def update(self, preds: Tensor, targets: Tensor):
         preds = preds.detach()
@@ -86,7 +87,8 @@ class MeanAbsoluteError(Metric):
 class CorrectPredictions(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state('correct', torch.tensor(0, dtype=torch.int32, device='cuda'))
+        device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        self.add_state('correct', torch.tensor(0, dtype=torch.int32, device=device))
 
     def update(self, preds: Tensor, targets: Tensor):
         # preds should already be thresholded (bool or 0/1 int) by the caller
@@ -100,8 +102,9 @@ class CorrectPredictions(Metric):
 class BinaryAccuracy(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state('error', torch.tensor(0, dtype=torch.float32, device='cuda'))
-        self.add_state('total', torch.tensor(0, dtype=torch.int32, device='cuda'))
+        device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        self.add_state('error', torch.tensor(0, dtype=torch.float32, device=device))
+        self.add_state('total', torch.tensor(0, dtype=torch.int32, device=device))
     
     def update(self, preds: Tensor, targets: Tensor):
         preds = torch.round(preds.detach())
