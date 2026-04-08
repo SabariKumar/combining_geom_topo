@@ -191,6 +191,20 @@ class ProteinDataset(Dataset):
         if not self.force_rebuild and os.path.exists(input_path) and os.path.exists(target_path):
             dat = torch.load(input_path)
             target = torch.load(target_path)
+            # Validate edge indices — a corrupted .pt (e.g. wrong DGL version) can
+            # produce out-of-bounds or negative indices that crash _get_relative_pos
+            try:
+                src, dst = dat.edges()
+                n = dat.num_nodes()
+                if not (src.dtype in (torch.int32, torch.int64) and
+                        dst.dtype in (torch.int32, torch.int64) and
+                        int(src.min()) >= 0 and int(src.max()) < n and
+                        int(dst.min()) >= 0 and int(dst.max()) < n):
+                    raise ValueError(f'edge index out of range (n={n})')
+            except Exception as e:
+                print(f'WARNING: corrupted graph for SID {base} ({e}), rebuilding from PDB...')
+                os.remove(input_path)
+                dat, target = self._build_data(pdb_path)
         else:
             dat, target = self._build_data(pdb_path)
 

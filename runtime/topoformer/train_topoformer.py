@@ -327,12 +327,12 @@ if __name__ == '__main__':
     #                                **vars(args))
     
     _repo_dir = os.environ.get('REPO_DIR', '/expanse/lustre/projects/slc154/sabarikumar/ProteinSol/combining_geom_topo')
-    datamodule = ProteinDataModule(pdb_dir = os.path.join(_repo_dir, 'data/train'),
-                                   sol_df = os.path.join(_repo_dir, 'data/csvs/training_set.csv'),
+    datamodule = ProteinDataModule(pdb_dir = os.path.join(_repo_dir, 'data/train_'),
+                                   sol_df = os.path.join(_repo_dir, 'data/csvs/training__set.csv'),
                                    mode = 'train',
                                    use_barcodes = True,
-                                   processed_dir = os.path.join(_repo_dir, 'data/train'),
-                                   barcode_dir = os.path.join(_repo_dir, 'data/train/'),
+                                   processed_dir = os.path.join(_repo_dir, 'data/train_'),
+                                   barcode_dir = os.path.join(_repo_dir, 'data/train_/'),
                                    external_test = os.path.join(_repo_dir, 'data/test'),
                                    external_df = os.path.join(_repo_dir, 'data/csvs/test_set.csv'),
                                    external_barcode_dir = os.path.join(_repo_dir, 'data/test/'),
