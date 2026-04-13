@@ -136,13 +136,48 @@ def main():
     )
 
     # ------------------------------------------------------------------
+    # Peek at checkpoint to infer architecture hyperparameters
+    # ------------------------------------------------------------------
+    print(f"Loading checkpoint from {args.ckpt_path} to infer architecture …", flush=True)
+    ckpt = torch.load(str(args.ckpt_path), map_location="cpu")
+
+    # Pick the right key: prefer the unwrapped module state dict
+    if "state_dict_module" in ckpt:
+        sd = ckpt["state_dict_module"]
+    elif "state_dict" in ckpt:
+        raw = ckpt["state_dict"]
+        sd = {k.replace("module.", "", 1): v for k, v in raw.items()}
+    else:
+        sd = ckpt
+
+    # fiber_out.num_features == num_degrees * num_channels == mlp.0.weight.shape[0]
+    ckpt_fiber_out_dim = sd["mlp.0.weight"].shape[0]
+    num_channels = ckpt_fiber_out_dim // args.num_degrees
+    if num_channels != args.num_channels:
+        print(
+            f"  NOTE: checkpoint fiber_out={ckpt_fiber_out_dim}, "
+            f"overriding --num_channels {args.num_channels} → {num_channels}",
+            flush=True,
+        )
+
+    # num_layers = number of contract_modules entries
+    ckpt_layer_keys = {k.split(".")[2] for k in sd if k.startswith("transformer.contract_modules.")}
+    num_layers = len(ckpt_layer_keys)
+    if num_layers != args.num_layers:
+        print(
+            f"  NOTE: checkpoint has {num_layers} contract_module layers, "
+            f"overriding --num_layers {args.num_layers} → {num_layers}",
+            flush=True,
+        )
+
+    # ------------------------------------------------------------------
     # Model
     # ------------------------------------------------------------------
     print("Building model …", flush=True)
     model = TopoformerPooled(
         output_dim=1,
         fiber_in=Fiber({0: NODE_FEATURE_DIM}),
-        fiber_out=Fiber({0: args.num_degrees * args.num_channels}),
+        fiber_out=Fiber({0: args.num_degrees * num_channels}),
         fiber_edge=Fiber({0: EDGE_FEATURE_DIM}),
         tensor_cores=using_tensor_cores(args.amp),
         comb_type="attn",
@@ -150,8 +185,8 @@ def main():
         save_feats_dir=str(args.output_csv.parent),
         run_id="eval",
         num_degrees=args.num_degrees,
-        num_channels=args.num_channels,
-        num_layers=args.num_layers,
+        num_channels=num_channels,
+        num_layers=num_layers,
         num_heads=args.num_heads,
         channels_div=args.channels_div,
         pooling=None,   # required by TopoformerPooled.__init__; None → 'max'
@@ -159,22 +194,12 @@ def main():
     )
 
     # ------------------------------------------------------------------
-    # Load checkpoint
+    # Load checkpoint (reuse already-parsed sd, move tensors to device)
     # ------------------------------------------------------------------
-    print(f"Loading checkpoint from {args.ckpt_path} …", flush=True)
-    ckpt = torch.load(str(args.ckpt_path), map_location=device)
-
-    if "state_dict_module" in ckpt:
-        model.load_state_dict(ckpt["state_dict_module"])
-        print("  Loaded state_dict_module (unwrapped DDP weights)", flush=True)
-    elif "state_dict" in ckpt:
-        raw = ckpt["state_dict"]
-        new_sd = {k.replace("module.", "", 1): v for k, v in raw.items()}
-        model.load_state_dict(new_sd)
-        print("  Loaded state_dict (stripped 'module.' prefix)", flush=True)
-    else:
-        model.load_state_dict(ckpt)
-        print("  Loaded raw state_dict", flush=True)
+    print("Loading weights into model …", flush=True)
+    sd_on_device = {k: v.to(device) for k, v in sd.items()}
+    model.load_state_dict(sd_on_device)
+    print("  Weights loaded successfully", flush=True)
 
     model.to(device)
     model.eval()
@@ -195,7 +220,7 @@ def main():
             edge_feats   = {k: v.to(device) for k, v in edge_feats.items()}
             target       = target.to(device)
 
-            with torch.cuda.amp.autocast(enabled=args.amp):
+            with torch.amp.autocast("cuda", enabled=args.amp):
                 logits = model(graph, node_feats, barcode_feats, edge_feats)
                 preds_unrounded = torch.sigmoid(logits).squeeze(-1)
 
