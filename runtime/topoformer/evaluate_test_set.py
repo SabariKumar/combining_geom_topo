@@ -10,10 +10,11 @@ Usage (from the combining_geom_topo root, inside the pixi environment):
         --test_pdb_dir  data/test \
         --test_csv      data/csvs/test_set.csv \
         --barcode_dir   data/test \
-        --output_csv    results/47977508/test_predictions.csv \
-        [--num_degrees 4] [--num_channels 32] [--num_layers 7] \
-        [--num_heads 8]   [--channels_div 2]  [--batch_size 8] \
-        [--num_workers 4] [--amp]
+        --output_csv    results/47977508/test_predictions.csv
+
+Defaults match the wandb config for job 47977508:
+  num_degrees=2, num_channels=32, num_layers=3, num_heads=2,
+  channels_div=2, dropout=0, low_memory=True
 """
 
 import argparse
@@ -34,18 +35,20 @@ def parse_args():
     p = argparse.ArgumentParser(description="Topoformer test-set evaluation")
     p.add_argument("--ckpt_path",    type=pathlib.Path, required=True)
     p.add_argument("--test_pdb_dir", type=pathlib.Path, required=True,
-                   help="Directory containing test PDB files AND cached *_input.pt / *_target.pt files")
+                   help="Directory containing test PDB files AND cached *_input.pt / *_target.pt")
     p.add_argument("--test_csv",     type=pathlib.Path, required=True,
                    help="CSV with 'sid' and 'solubility' columns")
     p.add_argument("--barcode_dir",  type=pathlib.Path, required=True,
                    help="Directory containing *_emb_b*.pt barcode embeddings")
     p.add_argument("--output_csv",   type=pathlib.Path, required=True)
-    # Model hyperparameters — must match training
-    p.add_argument("--num_degrees",  type=int, default=4)
+    # Model hyperparameters — defaults match wandb config for job 47977508
+    p.add_argument("--num_degrees",  type=int, default=2)
     p.add_argument("--num_channels", type=int, default=32)
-    p.add_argument("--num_layers",   type=int, default=7)
-    p.add_argument("--num_heads",    type=int, default=8)
+    p.add_argument("--num_layers",   type=int, default=3)
+    p.add_argument("--num_heads",    type=int, default=2)
     p.add_argument("--channels_div", type=int, default=2)
+    p.add_argument("--dropout",      type=float, default=0.0)
+    p.add_argument("--low_memory",   action="store_true", default=True)
     # Dataloader
     p.add_argument("--batch_size",   type=int, default=8)
     p.add_argument("--num_workers",  type=int, default=4)
@@ -75,8 +78,8 @@ def collate(samples):
     batched_graph = dgl.batch(graphs)
     batched_graph.edata["rel_pos"] = _get_relative_pos(batched_graph)
 
-    node_feats  = {"0": batched_graph.ndata["attr"][:, :NODE_FEATURE_DIM].float()}
-    edge_feats  = {"0": batched_graph.edata["edge_attr"][:, :EDGE_FEATURE_DIM, None].float()}
+    node_feats    = {"0": batched_graph.ndata["attr"][:, :NODE_FEATURE_DIM].float()}
+    edge_feats    = {"0": batched_graph.edata["edge_attr"][:, :EDGE_FEATURE_DIM, None].float()}
     barcode_feats = {"0": torch.stack(barcodes, dim=0).float()}
     target_tensor = torch.tensor(targets)
 
@@ -136,12 +139,11 @@ def main():
     )
 
     # ------------------------------------------------------------------
-    # Peek at checkpoint to infer architecture hyperparameters
+    # Load checkpoint and infer architecture from weights
     # ------------------------------------------------------------------
-    print(f"Loading checkpoint from {args.ckpt_path} to infer architecture …", flush=True)
+    print(f"Loading checkpoint from {args.ckpt_path} …", flush=True)
     ckpt = torch.load(str(args.ckpt_path), map_location="cpu")
 
-    # Pick the right key: prefer the unwrapped module state dict
     if "state_dict_module" in ckpt:
         sd = ckpt["state_dict_module"]
     elif "state_dict" in ckpt:
@@ -150,25 +152,24 @@ def main():
     else:
         sd = ckpt
 
-    # fiber_out.num_features == num_degrees * num_channels == mlp.0.weight.shape[0]
-    ckpt_fiber_out_dim = sd["mlp.0.weight"].shape[0]
-    num_channels = ckpt_fiber_out_dim // args.num_degrees
-    if num_channels != args.num_channels:
-        print(
-            f"  NOTE: checkpoint fiber_out={ckpt_fiber_out_dim}, "
-            f"overriding --num_channels {args.num_channels} → {num_channels}",
-            flush=True,
-        )
+    # to_kernel_self.0 shape = [num_degrees * num_channels, num_channels]
+    # Infers both values without assuming either.
+    tks_key = next(k for k in sd if k.endswith("to_kernel_self.0"))
+    tks_shape = sd[tks_key].shape
+    num_channels = tks_shape[1]
+    num_degrees  = tks_shape[0] // num_channels
 
-    # num_layers = number of contract_modules entries
-    ckpt_layer_keys = {k.split(".")[2] for k in sd if k.startswith("transformer.contract_modules.")}
-    num_layers = len(ckpt_layer_keys)
-    if num_layers != args.num_layers:
-        print(
-            f"  NOTE: checkpoint has {num_layers} contract_module layers, "
-            f"overriding --num_layers {args.num_layers} → {num_layers}",
-            flush=True,
-        )
+    # num_layers = number of distinct contract_module indices
+    num_layers = len({k.split(".")[2] for k in sd
+                      if k.startswith("transformer.contract_modules.")})
+
+    for param, inferred, cli_val in [
+        ("num_degrees",  num_degrees,  args.num_degrees),
+        ("num_channels", num_channels, args.num_channels),
+        ("num_layers",   num_layers,   args.num_layers),
+    ]:
+        status = "✓" if inferred == cli_val else f"NOTE: inferred {inferred}, ignoring --{param} {cli_val}"
+        print(f"  {param}: {inferred}  {status}", flush=True)
 
     # ------------------------------------------------------------------
     # Model
@@ -177,28 +178,26 @@ def main():
     model = TopoformerPooled(
         output_dim=1,
         fiber_in=Fiber({0: NODE_FEATURE_DIM}),
-        fiber_out=Fiber({0: args.num_degrees * num_channels}),
+        fiber_out=Fiber({0: num_degrees * num_channels}),
         fiber_edge=Fiber({0: EDGE_FEATURE_DIM}),
         tensor_cores=using_tensor_cores(args.amp),
         comb_type="attn",
         use_topo_projection=False,
         save_feats_dir=str(args.output_csv.parent),
         run_id="eval",
-        num_degrees=args.num_degrees,
+        num_degrees=num_degrees,
         num_channels=num_channels,
         num_layers=num_layers,
         num_heads=args.num_heads,
         channels_div=args.channels_div,
-        pooling=None,   # required by TopoformerPooled.__init__; None → 'max'
+        dropout=args.dropout,
+        low_memory=args.low_memory,
+        pooling=None,        # required by TopoformerPooled.__init__; None → 'max'
         amp=args.amp,
     )
 
-    # ------------------------------------------------------------------
-    # Load checkpoint (reuse already-parsed sd, move tensors to device)
-    # ------------------------------------------------------------------
     print("Loading weights into model …", flush=True)
-    sd_on_device = {k: v.to(device) for k, v in sd.items()}
-    model.load_state_dict(sd_on_device)
+    model.load_state_dict(sd)
     print("  Weights loaded successfully", flush=True)
 
     model.to(device)
@@ -214,11 +213,11 @@ def main():
         for batch in tqdm(loader, unit="batch"):
             sids, graph, node_feats, barcode_feats, edge_feats, target = batch
 
-            graph        = graph.to(device)
-            node_feats   = {k: v.to(device) for k, v in node_feats.items()}
-            barcode_feats= {k: v.to(device) for k, v in barcode_feats.items()}
-            edge_feats   = {k: v.to(device) for k, v in edge_feats.items()}
-            target       = target.to(device)
+            graph         = graph.to(device)
+            node_feats    = {k: v.to(device) for k, v in node_feats.items()}
+            barcode_feats = {k: v.to(device) for k, v in barcode_feats.items()}
+            edge_feats    = {k: v.to(device) for k, v in edge_feats.items()}
+            target        = target.to(device)
 
             with torch.amp.autocast("cuda", enabled=args.amp):
                 logits = model(graph, node_feats, barcode_feats, edge_feats)
