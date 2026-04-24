@@ -90,3 +90,7 @@ SECRETS.py
 .csv
 **/results/
 **/wandb/
+
+# HPC job scripts (contain account/allocation info)
+runtime/topoformer/run_training_slurm.sh
+runtime/topoformer/run_training_expanse.sh
